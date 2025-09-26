@@ -7,8 +7,8 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-screen">
       {/* Navbar */}
-      <div className="p-4 bg-gray-100 flex justify-between">
-        <span>Sens-Vuer</span>
+      <div className="px-4 py-2 bg-gray-100 flex justify-between">
+        <img src="/logo-text.svg" alt="Sens-Vuer Logo" className="h-10" />
         <Toolbox />
         <div></div>
       </div>
