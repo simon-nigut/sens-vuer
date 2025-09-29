@@ -1,5 +1,5 @@
-import { getRenderingEngine, type Types } from '@cornerstonejs/core';
-import { Eclipse, Search, RotateCcw } from 'lucide-react';
+import { type Types } from '@cornerstonejs/core';
+import { Eclipse, Search, RotateCcw, SquareSplitHorizontal } from 'lucide-react';
 import { useState, type FC } from 'react';
 import {
   Tooltip,
@@ -12,10 +12,12 @@ interface ToolboxProps {}
 
 const Toolbox: FC<ToolboxProps> = () => {
   const {
-    renderingEngineId,
+    renderingEngine,
     renderedImageId,
     tool,
     setTool,
+    viewMode,
+    setViewMode
   } = useViewerStore();
   
   const [invert, setInvert] = useState(false);
@@ -33,31 +35,57 @@ const Toolbox: FC<ToolboxProps> = () => {
     setTool(tool === "invert" ? null : "invert");
     setInvert(tool === "invert" ? false : newInvert);
 
-    const renderingEngine = getRenderingEngine(renderingEngineId!);
-    if (!renderingEngine) return;
+    if (!renderingEngine) {
+      console.error("Rendering engine not found");
+      return;
+    }
 
-    const viewport = renderingEngine.getViewport(
-      "COLOR_STACK",
-    ) as Types.IStackViewport;
+    // const viewport = renderingEngine.getViewport(
+    //   stackViewportId
+    // ) as Types.IStackViewport;
 
-    viewport.setProperties({ invert: newInvert });
-    viewport.render();
+    // viewport.setProperties({ invert: newInvert });
+    // viewport.render();
+
+    const viewports = renderingEngine.getViewports() as Types.IStackViewport[];
+
+    viewports.forEach((viewport) => {
+      viewport.setProperties({ invert: newInvert });
+      viewport.render();
+    });
   };
 
   const onReset = () => {
+    if (!renderedImageId) {
+      console.error("No image rendered");
+      return;
+    }
+
+    if (!renderingEngine) {
+      console.error("Rendering engine not found");
+      return;
+    }
+
+    const viewports = renderingEngine.getViewports() as Types.IStackViewport[];
+
+    viewports.forEach((viewport) => {
+      viewport.resetCamera();
+      viewport.resetProperties();
+      viewport.render();
+    });
+  };
+
+  const onChangeViewMode = (mode: 'single' | 'dual-comparison' | 'quad-comparison') => {
     if (!renderedImageId) return;
 
-    const renderingEngine = getRenderingEngine(renderingEngineId!);
-    if (!renderingEngine) return;
-
-    const viewport = renderingEngine.getViewport(
-      "COLOR_STACK",
-    ) as Types.IStackViewport;
-
-    viewport.resetCamera();
-    viewport.resetProperties();
-    viewport.render();
-  };
+    if (viewMode === 'single') {
+      setViewMode('dual-comparison');
+    } else if (viewMode === 'dual-comparison') {
+      setViewMode('quad-comparison');
+    } else {
+      setViewMode('single');
+    }
+  }
 
   return (
     <div className="flex gap-x-1 bg-gray-300 rounded-lg p-1">
@@ -80,6 +108,13 @@ const Toolbox: FC<ToolboxProps> = () => {
         onToggle={onReset}
         tooltip="Reset Zoom/Position"
         toggled={false}
+        disabled={!renderedImageId}
+      />
+      <ToolIcon
+        icon={<SquareSplitHorizontal />}
+        onToggle={() => {onChangeViewMode('dual-comparison')}}
+        tooltip="Comparison Mode"
+        toggled={viewMode !== 'single'}
         disabled={!renderedImageId}
       />
     </div>

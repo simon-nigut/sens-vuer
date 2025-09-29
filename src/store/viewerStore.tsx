@@ -1,64 +1,79 @@
-import { getRenderingEngine, type Types } from "@cornerstonejs/core";
+import { getRenderingEngine, RenderingEngine, type Types } from "@cornerstonejs/core";
 import { create } from "zustand";
 
 interface ViewerState {
   renderingEngineId: string;
+  renderingEngine: RenderingEngine | null;
   stackViewportId: string;
   renderedImageId: string | null;
   tool: string | null;
-  isLoading: boolean;
+  isLoading: Record<string, boolean>;   // per-viewport loading
   stack: string[]; // track the current stack
+  viewMode: 'single' | 'dual-comparison' | 'quad-comparison';
 
+  setRenderingEngine: (engine: RenderingEngine) => void;
   setRenderedImageId: (id: string) => void;
   setTool: (tool: string | null) => void;
-  setIsLoading: (loading: boolean) => void;
+  setIsLoading: (viewportId: string, loading: boolean) => void;
   setStack: (stack: string[]) => void;
+  setViewMode: (mode: 'single' | 'dual-comparison' | 'quad-comparison') => void;
 
-  renderImage: (imageId: string) => Promise<void>;
+  renderImage: (imageId: string, viewportId?: string) => Promise<void>;
 }
 
 export const useViewerStore = create<ViewerState>((set, get) => ({
   renderingEngineId: "sens-vuer_rendering-engine",
-  stackViewportId: "COLOR_STACK",
+  renderingEngine: null,
+  stackViewportId: "primary_viewport",
   renderedImageId: null,
   tool: null,
-  isLoading: false,
+  isLoading: {},
   stack: [],
+  viewMode: 'single',
 
+  setRenderingEngine: (engine) => set({ renderingEngine: engine }),
   setRenderedImageId: (imageId) => set({ renderedImageId: imageId }),
   setTool: (tool) => set({ tool }),
-  setIsLoading: (loading) => set({ isLoading: loading }),
+  setIsLoading: (viewportId, loading) =>
+    set((state) => ({
+      isLoading: {
+        ...state.isLoading,
+        [viewportId]: loading,
+      },
+    })),
   setStack: (stack) => set({ stack }),
+  setViewMode: (mode) => set({ viewMode: mode }),
 
-  renderImage: async (imageId: string) => {
-    const { renderingEngineId, stackViewportId, setRenderedImageId, setIsLoading, stack } = get();
-
+  // TODO: make it not reset stack but change picture from stack
+  // vieport.setImageIdIndex(newImageIdIndex)
+  renderImage: async (imageId: string, viewportId?: string) => {
+    const { renderingEngineId, stackViewportId, setIsLoading, setStack } = get();
     const renderingEngine = getRenderingEngine(renderingEngineId);
     if (!renderingEngine) return;
 
-    const viewport = renderingEngine.getViewport(stackViewportId) as Types.IStackViewport;
-    if (!viewport) return;
+    const targetViewportId = viewportId ?? stackViewportId;
+
+    setIsLoading(targetViewportId, true);
+
+    const viewport = renderingEngine.getViewport(
+      targetViewportId
+    ) as Types.IStackViewport;
+
+    if (!viewport) {
+      console.warn(`Viewport ${targetViewportId} not found`);
+      setIsLoading(targetViewportId, false);
+      return;
+    }
 
     try {
-      setIsLoading(true);
-
-      // Find index in existing stack
-      const index = stack.findIndex((id) => id === imageId);
-
-      if (index !== -1 && viewport.setImageIdIndex) {
-        viewport.setImageIdIndex(index); // select from existing stack
-      } else if (viewport.setStack) {
-        await viewport.setStack([imageId]); // new stack
-        set({ stack: [imageId] }); // update store
-      }
-
-      viewport.resetCamera?.();
-      viewport.resetProperties?.();
+      setStack([imageId]);
+      console.log("Rendering image:", imageId);
+      await viewport.setStack([imageId]);
       viewport.render();
-
-      setRenderedImageId(imageId);
+    } catch (error) {
+      console.error("Failed to render image:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoading(targetViewportId, false);
     }
   },
 }));
