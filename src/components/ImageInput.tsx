@@ -21,7 +21,7 @@ const ImageInput: FC<ImageInputProps> = ({
   onImagesAdded,
 }) => {
   const [images, setImages] = useState<ImageEntry[]>([]);
-  const { renderedImageId, setRenderedImageId, renderImage } = useViewerStore();
+  const { renderedImageId, setRenderedImageId, renderImage, setStack } = useViewerStore();
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -56,6 +56,7 @@ const ImageInput: FC<ImageInputProps> = ({
     // Set the stack with all images
     viewport.setStack(updated.map((img) => img.id));
     viewport.render();
+    setStack(updated.map((img) => img.id));
     setRenderedImageId(newImageIds[0]);
   };
 

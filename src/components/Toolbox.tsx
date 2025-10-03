@@ -1,5 +1,5 @@
 import { type Types } from '@cornerstonejs/core';
-import { Eclipse, Search, RotateCcw, SquareSplitHorizontal } from 'lucide-react';
+import { Eclipse, Search, RotateCcw, SquareSplitHorizontal, Columns2, Grid2X2, Square } from 'lucide-react';
 import { useState, type FC } from 'react';
 import {
   Tooltip,
@@ -7,6 +7,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useViewerStore } from "@/store/viewerStore";
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+
+// TODO: tool ideas - magnifying glass, brightness slider with reset button, annotations, length measurement, angle measurement
+
 
 interface ToolboxProps {}
 
@@ -78,12 +82,19 @@ const Toolbox: FC<ToolboxProps> = () => {
   const onChangeViewMode = (mode: 'single' | 'dual-comparison' | 'quad-comparison') => {
     if (!renderedImageId) return;
 
-    if (viewMode === 'single') {
-      setViewMode('dual-comparison');
-    } else if (viewMode === 'dual-comparison') {
-      setViewMode('quad-comparison');
-    } else {
-      setViewMode('single');
+    switch (mode) {
+      case "single":
+        setViewMode("single");
+        break;
+      case "dual-comparison":
+        setViewMode("dual-comparison");
+        break;
+      case "quad-comparison":
+        setViewMode("quad-comparison");
+        break;
+      default:
+        console.error("Invalid view mode");
+        return;
     }
   }
 
@@ -110,13 +121,42 @@ const Toolbox: FC<ToolboxProps> = () => {
         toggled={false}
         disabled={!renderedImageId}
       />
-      <ToolIcon
-        icon={<SquareSplitHorizontal />}
-        onToggle={() => {onChangeViewMode('dual-comparison')}}
-        tooltip="Comparison Mode"
-        toggled={viewMode !== 'single'}
-        disabled={!renderedImageId}
-      />
+      <Popover>
+        <PopoverTrigger>
+          <ToolIcon
+            icon={<SquareSplitHorizontal />}
+            tooltip="Comparison Mode"
+            toggled={viewMode !== 'single'}
+            disabled={!renderedImageId}
+          />
+        </PopoverTrigger>
+        <PopoverContent className="w-min">
+          <div className="flex">
+            <ToolIcon
+              icon={<Square />}
+              onToggle={() => onChangeViewMode("single")}
+              tooltip="Regular view"
+              toggled={viewMode === 'single'}
+              disabled={!renderedImageId}
+            /> 
+            <ToolIcon
+              icon={<Columns2 />}
+              onToggle={() => onChangeViewMode("dual-comparison")}
+              tooltip="Side-by-Side comparison"
+              toggled={viewMode === 'dual-comparison'}
+              disabled={!renderedImageId}
+            />  
+            <ToolIcon
+              icon={<Grid2X2 />}
+              onToggle={() => onChangeViewMode("quad-comparison")}
+              tooltip="2x2 comparison"
+              toggled={viewMode === 'quad-comparison'}
+              disabled={!renderedImageId}
+            /> 
+          </div>
+        </PopoverContent>
+      </Popover>
+      
     </div>
   );
 };
@@ -124,7 +164,7 @@ const Toolbox: FC<ToolboxProps> = () => {
 interface ToolIconProps {
   icon: React.ReactNode;
   toggled: boolean;
-  onToggle: () => void;
+  onToggle?: () => void;
   tooltip: string;
   disabled?: boolean;
 }

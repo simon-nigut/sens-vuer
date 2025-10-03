@@ -44,10 +44,8 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   setStack: (stack) => set({ stack }),
   setViewMode: (mode) => set({ viewMode: mode }),
 
-  // TODO: make it not reset stack but change picture from stack
-  // vieport.setImageIdIndex(newImageIdIndex)
   renderImage: async (imageId: string, viewportId?: string) => {
-    const { renderingEngineId, stackViewportId, setIsLoading, setStack } = get();
+    const { renderingEngineId, stackViewportId, setIsLoading, stack, setRenderedImageId } = get();
     const renderingEngine = getRenderingEngine(renderingEngineId);
     if (!renderingEngine) return;
 
@@ -66,10 +64,10 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     }
 
     try {
-      setStack([imageId]);
-      console.log("Rendering image:", imageId);
-      await viewport.setStack([imageId]);
+      const imageIdIndex = stack.indexOf(imageId);
+      await viewport.setImageIdIndex(imageIdIndex);
       viewport.render();
+      setRenderedImageId(imageId);
     } catch (error) {
       console.error("Failed to render image:", error);
     } finally {

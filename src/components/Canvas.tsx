@@ -23,11 +23,14 @@ export default function Canvas({
   viewportId,
   enableDrop = true,
 }: CanvasProps) {
+  const { renderImage, stack, isLoading, renderingEngineId, renderingEngine, renderedImageId, stackViewportId } = useViewerStore();
   const elementRef = useRef<HTMLDivElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [zoom, _] = useState(1);
+  const [isFresh, setIsFresh] = useState(stackViewportId !== viewportId);
+  
+  // TODO: fix zoom display on comparison mode to work
+  const [zoom, setZoom] = useState(1);
 
-  const { renderImage, stack, isLoading, renderingEngineId, renderingEngine } = useViewerStore();
 
   const loading = isLoading[viewportId] ?? false; // per-viewport flag
 
@@ -69,12 +72,27 @@ export default function Canvas({
     });
 
     const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
-    console.log(stack);
 
-    if (viewport && stack.length) {
-      viewport.setStack(stack).then(() => viewport.render());
+    if (viewport && renderedImageId) {
+      viewport.setStack(stack).then(() => {
+        renderImage(renderedImageId);
+        viewport.render()
+      });
     }
-  
+
+    // Zoom updating
+    if (viewport) {
+      setZoom(viewport.getZoom());
+
+      const updateZoom = () => {
+        setZoom(viewport.getZoom());
+      };
+
+      viewport.element?.addEventListener(
+        CoreEnums.Events.CAMERA_MODIFIED,
+        updateZoom
+      );
+    }
   });
 
   return (
@@ -101,6 +119,7 @@ export default function Canvas({
 
         const imageId = e.dataTransfer.getData("imageId");
         if (imageId) renderImage(imageId, viewportId);
+        setIsFresh(false);
       }}
     >
       {/* Loading overlay */}
@@ -114,6 +133,14 @@ export default function Canvas({
       <div className="z-10 absolute bottom-2 right-2 bg-black/60 text-white px-3 py-1 rounded-lg text-sm">
         Zoom: {(zoom * 100).toFixed(0)}%
       </div>
+
+      {isFresh && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-900">
+          <div className="text-gray-400 text-sm bg-black/50 px-4 py-2 rounded-lg">
+            Drag an image over
+          </div>
+        </div>
+      )}
     </div>
   );
 }
