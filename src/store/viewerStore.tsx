@@ -6,14 +6,14 @@ interface ViewerState {
   renderingEngine: RenderingEngine | null;
   stackViewportId: string;
   renderedImageId: string | null;
-  tool: string | null;
+  tool: string;
   isLoading: Record<string, boolean>;   // per-viewport loading
   stack: string[]; // track the current stack
   viewMode: 'single' | 'dual-comparison' | 'quad-comparison';
 
   setRenderingEngine: (engine: RenderingEngine) => void;
   setRenderedImageId: (id: string) => void;
-  setTool: (tool: string | null) => void;
+  setTool: (tool: string) => void;
   setIsLoading: (viewportId: string, loading: boolean) => void;
   setStack: (stack: string[]) => void;
   setViewMode: (mode: 'single' | 'dual-comparison' | 'quad-comparison') => void;
@@ -26,7 +26,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   renderingEngine: null,
   stackViewportId: "primary_viewport",
   renderedImageId: null,
-  tool: null,
+  tool: "move",
   isLoading: {},
   stack: [],
   viewMode: 'single',

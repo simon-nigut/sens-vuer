@@ -8,7 +8,12 @@ import {
   PanTool,
   ToolGroupManager,
   ZoomTool,
+  RectangleROITool,
+  LengthTool,
+  EllipticalROITool,
+  ArrowAnnotateTool,
   Enums as ToolsEnums,
+  EraserTool,
 } from "@cornerstonejs/tools";
 import { Loader2 } from "lucide-react";
 import { useViewerStore } from "@/store/viewerStore";
@@ -58,15 +63,34 @@ export default function Canvas({
   
     addTool(ZoomTool);
     addTool(PanTool);
+    addTool(LengthTool);
+    addTool(RectangleROITool);
+    addTool(EllipticalROITool);
+    addTool(ArrowAnnotateTool);
+    addTool(EraserTool);
   
     toolGroup.addTool(ZoomTool.toolName);
     toolGroup.addTool(PanTool.toolName);
-  
+    toolGroup.addTool(LengthTool.toolName);
+    toolGroup.addTool(RectangleROITool.toolName);
+    toolGroup.addTool(EllipticalROITool.toolName);
+    toolGroup.addTool(ArrowAnnotateTool.toolName);
+    toolGroup.addTool(EraserTool.toolName);
+
+    // Deactivate all annotation tools first
+    toolGroup.setToolPassive(PanTool.toolName);
+    toolGroup.setToolPassive(LengthTool.toolName);
+    toolGroup.setToolPassive(RectangleROITool.toolName);
+    toolGroup.setToolPassive(EllipticalROITool.toolName);
+    toolGroup.setToolPassive(ArrowAnnotateTool.toolName);
+    toolGroup.setToolPassive(EraserTool.toolName);
+
     toolGroup.addViewport(viewportId, renderingEngineId);
-  
+
     toolGroup.setToolActive(PanTool.toolName, {
       bindings: [{ mouseButton: ToolsEnums.MouseBindings.Primary }],
     });
+  
     toolGroup.setToolActive(ZoomTool.toolName, {
       bindings: [{ mouseButton: ToolsEnums.MouseBindings.Wheel }],
     });

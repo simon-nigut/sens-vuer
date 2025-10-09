@@ -30,23 +30,24 @@ export default function hardcodedMetaDataProvider(type: string, imageId: string,
       return generalSeriesModule;
     } else if (type === 'imagePlaneModule') {
       const index = imageIds.indexOf(imageId);
-      // console.warn(index);
+      const pixelSpacingX = 0.00586; // mm per pixel horizontally
+      const pixelSpacingY = 0.00586; // mm per pixel vertically
+
       const imagePlaneModule = {
         imageOrientationPatient: [1, 0, 0, 0, 1, 0],
         imagePositionPatient: [0, 0, index * 5],
-        pixelSpacing: [1, 1],
-        columnPixelSpacing: 1,
-        rowPixelSpacing: 1,
+        pixelSpacing: [pixelSpacingY, pixelSpacingX],
+        columnPixelSpacing: pixelSpacingX,
+        rowPixelSpacing: pixelSpacingY,
         frameOfReferenceUID: 'FORUID',
         columns: 2048,
         rows: 1216,
         rowCosines: [1, 0, 0],
         columnCosines: [0, 1, 0],
-        // setting useDefaultValues to true signals the calibration values above cannot be trusted
-        // and units should be displayed in pixels
-        usingDefaultValues: true,
+        // remove this line ↓
+        // usingDefaultValues: true,
       };
-  
+
       return imagePlaneModule;
     } else if (type === 'voiLutModule') {
       return {

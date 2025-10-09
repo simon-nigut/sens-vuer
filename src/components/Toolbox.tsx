@@ -1,6 +1,20 @@
-import { type Types } from '@cornerstonejs/core';
-import { Eclipse, Search, RotateCcw, SquareSplitHorizontal, Columns2, Grid2X2, Square } from 'lucide-react';
-import { useState, type FC } from 'react';
+import { type Types, utilities as csUtils } from '@cornerstonejs/core';
+import {
+  Eclipse,
+  RotateCcw,
+  SquareSplitHorizontal,
+  Columns2,
+  Grid2X2,
+  Square,
+  Ruler,
+  Circle,
+  PencilLine,
+  Move,
+  Undo,
+  Redo,
+  Eraser,
+} from 'lucide-react';
+import { useEffect, useState, type FC, type JSX } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -8,11 +22,45 @@ import {
 } from "@/components/ui/tooltip";
 import { useViewerStore } from "@/store/viewerStore";
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-
-// TODO: tool ideas - magnifying glass, brightness slider with reset button, annotations, length measurement, angle measurement
-
+import {
+  ToolGroupManager,
+  Enums as ToolsEnums,
+  LengthTool,
+  RectangleROITool,
+  EllipticalROITool,
+  ArrowAnnotateTool,
+  PanTool,
+  EraserTool,
+} from "@cornerstonejs/tools";
 
 interface ToolboxProps {}
+
+interface ToolConfig {
+  key: string;
+  icon: JSX.Element;
+  tooltip: string;
+  action: "tool" | "invert" | "reset" | "undo" | "redo" | "viewMode";
+  shortcut?: string;
+  group?: "default" | "viewMode";
+}
+
+const TOOL_CONFIG: ToolConfig[] = [
+  { key: "move", icon: <Move />, tooltip: "Move", action: "tool", shortcut: "V" },
+  { key: "invert", icon: <Eclipse />, tooltip: "Invert colors", action: "invert", shortcut: "I" },
+  { key: "reset", icon: <RotateCcw />, tooltip: "Reset Zoom/Position", action: "reset", shortcut: "0" },
+  { key: "length", icon: <Ruler />, tooltip: "Length measurement", action: "tool", shortcut: "L" },
+  { key: "rect", icon: <Square />, tooltip: "Rectangle ROI", action: "tool", shortcut: "R" },
+  { key: "ellipse", icon: <Circle />, tooltip: "Elliptical ROI", action: "tool", shortcut: "E" },
+  { key: "arrow", icon: <PencilLine />, tooltip: "Arrow annotation", action: "tool", shortcut: "A" },
+  { key: "eraser", icon: <Eraser />, tooltip: "Eraser", action: "tool", shortcut: "X" },
+  { key: "undo", icon: <Undo />, tooltip: "Undo", action: "undo", shortcut: "Ctrl+Z" },
+  { key: "redo", icon: <Redo />, tooltip: "Redo", action: "redo", shortcut: "Ctrl+Y" },
+
+  // --- View Mode Tools ---
+  { key: "single", icon: <Square />, tooltip: "Regular view", action: "viewMode", shortcut: "1", group: "viewMode" },
+  { key: "dual-comparison", icon: <Columns2 />, tooltip: "Side-by-Side comparison", action: "viewMode", shortcut: "2", group: "viewMode" },
+  { key: "quad-comparison", icon: <Grid2X2 />, tooltip: "2x2 comparison", action: "viewMode", shortcut: "4", group: "viewMode" },
+];
 
 const Toolbox: FC<ToolboxProps> = () => {
   const {
@@ -21,38 +69,46 @@ const Toolbox: FC<ToolboxProps> = () => {
     tool,
     setTool,
     viewMode,
-    setViewMode
+    setViewMode,
   } = useViewerStore();
-  
+
+  const { DefaultHistoryMemo } = csUtils.HistoryMemo;
   const [invert, setInvert] = useState(false);
 
-  const onZoom = () => {
-    if (!renderedImageId) return;
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!renderedImageId) return;
 
-    setTool(tool === "zoom" ? null : "zoom");
-  };
+      const parts: string[] = [];
+      if (event.ctrlKey || event.metaKey) parts.push('ctrl');
+      parts.push(event.key.toLowerCase());
+      const combo = parts.join('+');
+
+      const shortcut = TOOL_CONFIG.find(
+        (t) => t.shortcut?.toLowerCase() === combo
+      );
+      if (!shortcut) return;
+
+      event.preventDefault();
+      handleToolAction(shortcut.action, shortcut.key);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [renderedImageId, renderingEngine, invert, tool, viewMode]);
 
   const onInvert = () => {
     if (!renderedImageId) return;
 
     const newInvert = !invert;
-    setTool(tool === "invert" ? null : "invert");
-    setInvert(tool === "invert" ? false : newInvert);
+    setInvert(newInvert);
 
     if (!renderingEngine) {
       console.error("Rendering engine not found");
       return;
     }
 
-    // const viewport = renderingEngine.getViewport(
-    //   stackViewportId
-    // ) as Types.IStackViewport;
-
-    // viewport.setProperties({ invert: newInvert });
-    // viewport.render();
-
     const viewports = renderingEngine.getViewports() as Types.IStackViewport[];
-
     viewports.forEach((viewport) => {
       viewport.setProperties({ invert: newInvert });
       viewport.render();
@@ -60,18 +116,12 @@ const Toolbox: FC<ToolboxProps> = () => {
   };
 
   const onReset = () => {
-    if (!renderedImageId) {
-      console.error("No image rendered");
-      return;
-    }
-
-    if (!renderingEngine) {
-      console.error("Rendering engine not found");
+    if (!renderedImageId || !renderingEngine) {
+      console.error("Rendering engine not found or no image rendered");
       return;
     }
 
     const viewports = renderingEngine.getViewports() as Types.IStackViewport[];
-
     viewports.forEach((viewport) => {
       viewport.resetCamera();
       viewport.resetProperties();
@@ -81,46 +131,114 @@ const Toolbox: FC<ToolboxProps> = () => {
 
   const onChangeViewMode = (mode: 'single' | 'dual-comparison' | 'quad-comparison') => {
     if (!renderedImageId) return;
+    setViewMode(mode);
+  };
 
-    switch (mode) {
-      case "single":
-        setViewMode("single");
+  const onChangeTool = (selectedTool: string) => {
+    if (!renderedImageId || !renderingEngine) return;
+    setTool(selectedTool);
+
+    const viewports = renderingEngine.getViewports() as Types.IStackViewport[];
+    viewports.forEach((viewport) => {
+      const toolGroupId = `toolgroup-${viewport.id}`;
+      const toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
+      if (!toolGroup) return;
+
+      // Deactivate all tools
+      [
+        PanTool,
+        LengthTool,
+        RectangleROITool,
+        EllipticalROITool,
+        ArrowAnnotateTool,
+        EraserTool,
+      ].forEach((t) => toolGroup.setToolPassive(t.toolName));
+
+      const binding = { bindings: [{ mouseButton: ToolsEnums.MouseBindings.Primary }] };
+
+      switch (selectedTool) {
+        case "move":
+          toolGroup.setToolActive(PanTool.toolName, binding);
+          break;
+        case "length":
+          toolGroup.setToolActive(LengthTool.toolName, binding);
+          break;
+        case "rect":
+          toolGroup.setToolActive(RectangleROITool.toolName, binding);
+          break;
+        case "ellipse":
+          toolGroup.setToolActive(EllipticalROITool.toolName, binding);
+          break;
+        case "arrow":
+          toolGroup.setToolActive(ArrowAnnotateTool.toolName, binding);
+          break;
+        case "eraser":
+          toolGroup.setToolActive(EraserTool.toolName, binding);
+          break;
+      }
+    });
+  };
+
+  const onUndo = () => {
+    if (!renderedImageId || !renderingEngine) return;
+    DefaultHistoryMemo.undo();
+  };
+
+  const onRedo = () => {
+    if (!renderedImageId || !renderingEngine) return;
+    DefaultHistoryMemo.redo();
+  };
+
+  const handleToolAction = (action: ToolConfig["action"], key: string) => {
+    switch (action) {
+      case "tool":
+        onChangeTool(key);
         break;
-      case "dual-comparison":
-        setViewMode("dual-comparison");
+      case "invert":
+        onInvert();
         break;
-      case "quad-comparison":
-        setViewMode("quad-comparison");
+      case "reset":
+        onReset();
         break;
-      default:
-        console.error("Invalid view mode");
-        return;
+      case "undo":
+        onUndo();
+        break;
+      case "redo":
+        onRedo();
+        break;
+      case "viewMode":
+        onChangeViewMode(key as any);
+        break;
     }
-  }
+  };
+
+  const defaultTools = TOOL_CONFIG.filter((t) => t.group !== "viewMode");
+  const viewModeTools = TOOL_CONFIG.filter((t) => t.group === "viewMode");
 
   return (
     <div className="flex gap-x-1 bg-gray-300 rounded-lg p-1">
-      <ToolIcon
-        icon={<Search />}
-        onToggle={onZoom}
-        tooltip="Zoom"
-        toggled={tool === "zoom"}
-        disabled={!renderedImageId}
-      />
-      <ToolIcon
-        icon={<Eclipse />}
-        onToggle={onInvert}
-        tooltip="Invert colors"
-        toggled={tool === "invert"}
-        disabled={!renderedImageId}
-      />
-      <ToolIcon
-        icon={<RotateCcw />}
-        onToggle={onReset}
-        tooltip="Reset Zoom/Position"
-        toggled={false}
-        disabled={!renderedImageId}
-      />
+      {/* --- 🧰 Primary Tools --- */}
+      {defaultTools.map(({ key, icon, tooltip, action, shortcut }) => (
+        <ToolIcon
+          key={key}
+          icon={icon}
+          tooltip={tooltip}
+          shortcut={shortcut}
+          toggled={
+            action === "tool"
+              ? tool === key
+              : action === "invert"
+              ? invert
+              : action === "viewMode"
+              ? viewMode === key
+              : false
+          }
+          onToggle={() => handleToolAction(action, key)}
+          disabled={!renderedImageId}
+        />
+      ))}
+
+      {/* --- 🖼️ View Mode Popover --- */}
       <Popover>
         <PopoverTrigger>
           <ToolIcon
@@ -132,31 +250,20 @@ const Toolbox: FC<ToolboxProps> = () => {
         </PopoverTrigger>
         <PopoverContent className="w-min">
           <div className="flex">
-            <ToolIcon
-              icon={<Square />}
-              onToggle={() => onChangeViewMode("single")}
-              tooltip="Regular view"
-              toggled={viewMode === 'single'}
-              disabled={!renderedImageId}
-            /> 
-            <ToolIcon
-              icon={<Columns2 />}
-              onToggle={() => onChangeViewMode("dual-comparison")}
-              tooltip="Side-by-Side comparison"
-              toggled={viewMode === 'dual-comparison'}
-              disabled={!renderedImageId}
-            />  
-            <ToolIcon
-              icon={<Grid2X2 />}
-              onToggle={() => onChangeViewMode("quad-comparison")}
-              tooltip="2x2 comparison"
-              toggled={viewMode === 'quad-comparison'}
-              disabled={!renderedImageId}
-            /> 
+            {viewModeTools.map(({ key, icon, tooltip, shortcut }) => (
+              <ToolIcon
+                key={key}
+                icon={icon}
+                tooltip={tooltip}
+                shortcut={shortcut}
+                toggled={viewMode === key}
+                onToggle={() => onChangeViewMode(key as any)}
+                disabled={!renderedImageId}
+              />
+            ))}
           </div>
         </PopoverContent>
       </Popover>
-      
     </div>
   );
 };
@@ -166,10 +273,18 @@ interface ToolIconProps {
   toggled: boolean;
   onToggle?: () => void;
   tooltip: string;
+  shortcut?: string;
   disabled?: boolean;
 }
 
-const ToolIcon = ({icon, toggled, onToggle, tooltip, disabled}: ToolIconProps) => {
+const ToolIcon = ({
+  icon,
+  toggled,
+  onToggle,
+  tooltip,
+  shortcut,
+  disabled,
+}: ToolIconProps) => {
   return (
     <Tooltip>
       <TooltipTrigger>
@@ -179,8 +294,8 @@ const ToolIcon = ({icon, toggled, onToggle, tooltip, disabled}: ToolIconProps) =
             disabled
               ? "opacity-50 cursor-not-allowed"
               : toggled
-                ? "bg-blue-500 text-white hover:bg-blue-400"
-                : "hover:bg-gray-300"
+              ? "bg-blue-500 text-white hover:bg-blue-400"
+              : "hover:bg-gray-300"
           }`}
           onClick={onToggle}
         >
@@ -188,10 +303,17 @@ const ToolIcon = ({icon, toggled, onToggle, tooltip, disabled}: ToolIconProps) =
         </button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>{tooltip}</p>
+        <p>
+          {tooltip}
+          {shortcut ? (
+            <span className="text-xs text-gray-400 ml-1">
+              ({shortcut})
+            </span>
+          ) : null}
+        </p>
       </TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};
 
 export default Toolbox;
