@@ -74,8 +74,8 @@ const ImageInput: FC<ImageInputProps> = ({
                 e.dataTransfer.setData("imageId", img.id);
               }}
               onClick={() => renderImage(img.id)}
-              className={`cursor-pointer py-1.5 px-1 bg-gray-200 hover:bg-gray-300 flex flex-col items-center ${
-                renderedImageId === img.id ? "border-2 border-blue-500" : "border"
+              className={`cursor-pointer py-1.5 px-1 bg-secondary hover:bg-secondary/80 flex flex-col items-center ${
+                renderedImageId === img.id ? "border-2 border-primary" : "border"
               }`}
             >
               <img

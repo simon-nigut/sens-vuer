@@ -26,7 +26,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     e.preventDefault();
     const success = login(password);
     if (success) {
-      navigate("/");
+      navigate("/app");
     } else {
       setError("Invalid password");
     }
@@ -83,7 +83,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             <img
               src={loginHero}
               alt="Eye looking at the sky"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
         </CardContent>

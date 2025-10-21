@@ -9,6 +9,8 @@ import {
 import registerWebImageLoader from "@/cornerstone/loaders/registerWebImageLoader";
 import hardcodedMetaDataProvider from "@/cornerstone/hardcodedMetaDataProvider";
 import Toolbox from "@/components/Toolbox";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 export default function Viewer() {
   const { renderingEngineId, stackViewportId, setRenderingEngine, renderingEngine, viewMode } = useViewerStore();
@@ -45,10 +47,13 @@ export default function Viewer() {
   return (
     <div className="flex flex-col h-screen w-screen">
       {/* Navbar */}
-      <div className="px-4 py-2 bg-gray-100 flex justify-between">
-        <img src="/logo-text.svg" alt="Sens-Vuer Logo" className="h-10" />
+      <div className="px-4 py-2 bg-card flex justify-between items-center shadow-lg">
+        <div className="flex space-x-3 items-center">
+          <img src="/logo.svg" alt="Sens-Vuer Logo" className="h-8" />
+          <span className="font-bold tracking-wide text-2xl">Sens-Vuer</span>
+        </div>
         <Toolbox />
-        <div></div>
+        <Button><Sparkles />AI Analysis</Button>
       </div>
       
       <div className="w-full h-full flex">

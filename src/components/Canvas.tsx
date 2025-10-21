@@ -122,8 +122,8 @@ export default function Canvas({
   return (
     <div
       ref={elementRef}
-      className={`relative w-full h-full bg-gray-800 transition-all ${
-        isDraggingOver ? "border-4 border-blue-500" : ""
+      className={`relative w-full h-full bg-secondary transition-all ${
+        isDraggingOver ? "border-4 border-primary" : ""
       }`}
       onDragOver={(e) => {
         if (!enableDrop) return;
@@ -154,13 +154,13 @@ export default function Canvas({
       )}
 
       {/* Zoom overlay */}
-      <div className="z-10 absolute bottom-2 right-2 bg-black/60 text-white px-3 py-1 rounded-lg text-sm">
+      <div className="z-10 absolute bottom-2 right-2 bg-black/50 text-white px-3 py-1 rounded-lg text-sm">
         Zoom: {(zoom * 100).toFixed(0)}%
       </div>
 
       {isFresh && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-900">
-          <div className="text-gray-400 text-sm bg-black/50 px-4 py-2 rounded-lg">
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-background">
+          <div className="text-foreground-muted text-sm bg-secondary px-4 py-2 rounded-lg">
             Drag an image over
           </div>
         </div>
