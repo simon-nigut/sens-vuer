@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { useViewerStore } from "@/store/viewerStore";
 
 interface ExportImageDialogProps {
   open: boolean;
@@ -21,12 +23,18 @@ export function ExportImageDialog({ open, onOpenChange, renderingEngine, rendere
     return `sensvuer-export-${ts}`;
   });
   const [includeAnnotations, setIncludeAnnotations] = useState(true);
+  const [selectedViewport, setSelectedViewport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { viewMode } = useViewerStore();
 
   useEffect(() => {
-    if (open) generatePreview(includeAnnotations);
+    if (open) {
+      generatePreview(includeAnnotations);
+      const viewports = renderingEngine.getViewports();
+      if (viewports.length > 0 && !selectedViewport) setSelectedViewport(viewports[0].id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, includeAnnotations]);
+  }, [open, includeAnnotations, selectedViewport]);
 
   const generatePreview = async (withAnnotations: boolean) => {
     if (!renderingEngine || !renderedImageId) return;
@@ -36,7 +44,7 @@ export function ExportImageDialog({ open, onOpenChange, renderingEngine, rendere
       const viewports = renderingEngine.getViewports();
       if (!viewports?.length) throw new Error("No viewports available");
 
-      const viewport = viewports[0];
+      const viewport = viewports.find((vp: any) => vp.id === selectedViewport) ?? viewports[0];
       const viewportElement = viewport.element;
       const canvas = viewportElement.querySelector("canvas") as HTMLCanvasElement;
       const svgElements = viewportElement.querySelectorAll("svg");
@@ -126,6 +134,27 @@ export function ExportImageDialog({ open, onOpenChange, renderingEngine, rendere
 
           <div className="w-full space-y-4 flex flex-col justify-between">
             <div className="space-y-4">
+
+              {viewMode !== "single" ? (
+                <div className="space-y-2">
+                  <Label>Select viewport to export</Label>
+                  <RadioGroup
+                    value={selectedViewport ?? ""}
+                    onValueChange={setSelectedViewport}
+                    className="flex flex-col gap-2"
+                  >
+                    {renderingEngine?.getViewports()?.map((vp: any) => (
+                      <div key={vp.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={vp.id} id={`viewport-${vp.id}`} />
+                        <Label htmlFor={`viewport-${vp.id}`} className="capitalize">
+                          {vp.id.replace(/_/g, " ")}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              ) : null }
+
               <div className="space-y-2">
                 <Label htmlFor="fileName">File name</Label>
                 <Input

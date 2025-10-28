@@ -14,6 +14,7 @@ import {
   ArrowAnnotateTool,
   Enums as ToolsEnums,
   EraserTool,
+  WindowLevelTool,
 } from "@cornerstonejs/tools";
 import { Loader2 } from "lucide-react";
 import { useViewerStore } from "@/store/viewerStore";
@@ -28,19 +29,20 @@ export default function Canvas({
   viewportId,
   enableDrop = true,
 }: CanvasProps) {
-  const { renderImage, stack, isLoading, renderingEngineId, renderingEngine, renderedImageId, stackViewportId } = useViewerStore();
+  const { renderImage, stack, isLoading, renderingEngineId, renderingEngine, renderedImageIds, stackViewportId } = useViewerStore();
   const elementRef = useRef<HTMLDivElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isFresh, setIsFresh] = useState(stackViewportId !== viewportId);
+  const [isFresh, setIsFresh] = useState(!renderedImageIds[viewportId] && viewportId !== stackViewportId);
   
-  // TODO: fix zoom display on comparison mode to work
   const [zoom, setZoom] = useState(1);
-
 
   const loading = isLoading[viewportId] ?? false; // per-viewport flag
 
   useEffectOnce(() => {
-    if (!renderingEngine || !elementRef.current) return;
+    if (!renderingEngine || !elementRef.current) {
+      console.error("ERROR WITH ENGINE");
+      return;
+    };
   
     // Only enable this element if it hasn't been enabled yet
     try {
@@ -63,6 +65,7 @@ export default function Canvas({
   
     addTool(ZoomTool);
     addTool(PanTool);
+    addTool(WindowLevelTool);
     addTool(LengthTool);
     addTool(RectangleROITool);
     addTool(EllipticalROITool);
@@ -70,6 +73,7 @@ export default function Canvas({
     addTool(EraserTool);
   
     toolGroup.addTool(ZoomTool.toolName);
+    toolGroup.addTool(WindowLevelTool.toolName);
     toolGroup.addTool(PanTool.toolName);
     toolGroup.addTool(LengthTool.toolName);
     toolGroup.addTool(RectangleROITool.toolName);
@@ -79,6 +83,7 @@ export default function Canvas({
 
     // Deactivate all annotation tools first
     toolGroup.setToolPassive(PanTool.toolName);
+    toolGroup.setToolPassive(WindowLevelTool.toolName);
     toolGroup.setToolPassive(LengthTool.toolName);
     toolGroup.setToolPassive(RectangleROITool.toolName);
     toolGroup.setToolPassive(EllipticalROITool.toolName);
@@ -96,11 +101,16 @@ export default function Canvas({
     });
 
     const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
-
-    if (viewport && renderedImageId) {
+    if (viewport) {
       viewport.setStack(stack).then(() => {
-        renderImage(renderedImageId);
-        viewport.render()
+        const renderedImageId = renderedImageIds[viewportId];
+        console.log(viewportId);
+        console.log(renderedImageId);
+        if (renderedImageId) {
+          renderImage(renderedImageId);
+          viewport.render()
+          console.log("Rendering image ", renderedImageId, "for viewport ", viewportId);
+        }
       });
     }
 

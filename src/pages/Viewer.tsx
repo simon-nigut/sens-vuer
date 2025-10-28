@@ -53,7 +53,7 @@ export default function Viewer() {
           <span className="font-bold tracking-wide text-2xl">Sens-Vuer</span>
         </div>
         <Toolbox />
-        <Button><Sparkles />AI Analysis</Button>
+        <Button ><Sparkles />AI Analysis</Button>
       </div>
       
       <div className="w-full h-full flex">
@@ -69,7 +69,7 @@ export default function Viewer() {
         {/* Main viewer area */}
         <div
           className={`w-4/5 h-full ${
-            viewMode === 'quad-comparison' ? "grid grid-cols-2 grid-rows-2 gap-2" : viewMode === 'dual-comparison' ? "grid grid-cols-2 gap-2" : "flex"
+            viewMode === 'dual-comparison' ? "grid grid-cols-2 gap-2" : "flex"
           }`}
         >
           <Canvas
@@ -79,14 +79,6 @@ export default function Viewer() {
 
           {viewMode === 'dual-comparison' && (
             <Canvas viewportId="dual-comparison_viewport" />
-          )}
-
-          {viewMode === "quad-comparison" && (
-            <>
-              <Canvas viewportId="quad_viewport_1" />
-              <Canvas viewportId="quad_viewport_2" />
-              <Canvas viewportId="quad_viewport_3" />
-            </>
           )}
         </div>
       </div>

@@ -21,7 +21,7 @@ const ImageInput: FC<ImageInputProps> = ({
   onImagesAdded,
 }) => {
   const [images, setImages] = useState<ImageEntry[]>([]);
-  const { renderedImageId, setRenderedImageId, renderImage, setStack } = useViewerStore();
+  const { renderedImageIds, setRenderedImageId, renderImage, setStack, viewMode } = useViewerStore();
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -57,7 +57,7 @@ const ImageInput: FC<ImageInputProps> = ({
     viewport.setStack(updated.map((img) => img.id));
     viewport.render();
     setStack(updated.map((img) => img.id));
-    setRenderedImageId(newImageIds[0]);
+    setRenderedImageId(viewport.id, newImageIds[0]);
   };
 
   const noImagesLoaded = images.length === 0;
@@ -75,7 +75,11 @@ const ImageInput: FC<ImageInputProps> = ({
               }}
               onClick={() => renderImage(img.id)}
               className={`cursor-pointer py-1.5 px-1 bg-secondary hover:bg-secondary/80 flex flex-col items-center ${
-                renderedImageId === img.id ? "border-2 border-primary" : "border"
+                (viewMode === "dual-comparison"
+                  ? Object.values(renderedImageIds).includes(img.id)
+                  : renderedImageIds["primary_viewport"] === img.id)
+                  ? "border-2 border-primary"
+                  : "border"
               }`}
             >
               <img

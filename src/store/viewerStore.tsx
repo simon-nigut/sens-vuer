@@ -5,18 +5,18 @@ interface ViewerState {
   renderingEngineId: string;
   renderingEngine: RenderingEngine | null;
   stackViewportId: string;
-  renderedImageId: string | null;
+  renderedImageIds: Record<string, string | null>; // viewportId → imageId
   tool: string;
   isLoading: Record<string, boolean>;   // per-viewport loading
   stack: string[]; // track the current stack
-  viewMode: 'single' | 'dual-comparison' | 'quad-comparison';
+  viewMode: 'single' | 'dual-comparison';
 
   setRenderingEngine: (engine: RenderingEngine) => void;
-  setRenderedImageId: (id: string) => void;
+  setRenderedImageId: (viewportId: string, imageId: string) => void;
   setTool: (tool: string) => void;
   setIsLoading: (viewportId: string, loading: boolean) => void;
   setStack: (stack: string[]) => void;
-  setViewMode: (mode: 'single' | 'dual-comparison' | 'quad-comparison') => void;
+  setViewMode: (mode: 'single' | 'dual-comparison') => void;
 
   renderImage: (imageId: string, viewportId?: string) => Promise<void>;
 }
@@ -25,14 +25,20 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   renderingEngineId: "sens-vuer_rendering-engine",
   renderingEngine: null,
   stackViewportId: "primary_viewport",
-  renderedImageId: null,
+  renderedImageIds: {},
   tool: "move",
   isLoading: {},
   stack: [],
   viewMode: 'single',
 
   setRenderingEngine: (engine) => set({ renderingEngine: engine }),
-  setRenderedImageId: (imageId) => set({ renderedImageId: imageId }),
+  setRenderedImageId: (viewportId: string, imageId: string | null) =>
+    set((state) => ({
+      renderedImageIds: {
+        ...state.renderedImageIds,
+        [viewportId]: imageId,
+      },
+    })),
   setTool: (tool) => set({ tool }),
   setIsLoading: (viewportId, loading) =>
     set((state) => ({
@@ -67,7 +73,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       const imageIdIndex = stack.indexOf(imageId);
       await viewport.setImageIdIndex(imageIdIndex);
       viewport.render();
-      setRenderedImageId(imageId);
+      setRenderedImageId(targetViewportId, imageId);
     } catch (error) {
       console.error("Failed to render image:", error);
     } finally {
